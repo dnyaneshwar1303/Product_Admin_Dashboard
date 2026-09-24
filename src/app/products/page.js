@@ -18,21 +18,37 @@ export default function ProductsPage() {
 
     const [total, setTotal] = useState(0);
 
-    const fetchProducts = async () => {
+    const [search, setSearch]=useState("");
+
+    const fetchProducts = async (signal) => {
         try {
             setLoading(true);
             setError("");
 
             const skip = (page - 1) * pageSize;
 
-            const data = await getProducts(pageSize, skip);
+            const data = await getProducts({
+                limit: pageSize,
+                skip:skip,
+                search: search,
+                signal:signal,
+            });
 
             setProducts(data.products);
             setTotal(data.total);
         } catch (error) {
+            if(error.name==="CanceledError"){
+                return;
+            }
+            
+            if(error.code==="ERR_CANCELED"){
+                return;
+            }
             setError("Failed to load products.");
         } finally {
-            setLoading(false);
+            if(!signal?.aborted){
+                setLoading(false);
+            }
         }
     };
 
@@ -44,8 +60,18 @@ export default function ProductsPage() {
             return;
         }
 
-        fetchProducts();
-    }, [page, pageSize]);
+        const controller=new AbortController();
+
+        const timer=setTimeout(()=>{
+            fetchProducts(controller.signal);
+        },500);
+
+        return ()=>{
+            clearTimeout(timer);
+            controller.abort();
+        }
+
+    }, [page, pageSize, search]);
 
     const totalPages = Math.ceil(total / pageSize);
 
@@ -127,6 +153,10 @@ export default function ProductsPage() {
                         <p className="text-gray-600 mt-1">
                             Manage your products
                         </p>
+                    </div>
+
+                    <div className="mb-6">
+                        <input type="text" value={search} onChange={(e)=>{setSearch(e.target.value); setPage(1);}} placeholder="Search products..." className="w-full md:w-96 border rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"></input>
                     </div>
 
                     <div className="flex items-center gap-2">
