@@ -254,6 +254,12 @@ export default function ProductsPage() {
                         <h1 className="text-3xl font-bold">
                             Products
                         </h1>
+                        <button
+                            onClick={() => router.push("/products/add")}
+                            className="bg-blue-600 text-white px-5 py-3 rounded-lg"
+                        >
+                            + Add Product
+                        </button>
 
                         <p className="text-gray-600 mt-1">
                             Manage your products
@@ -459,6 +465,10 @@ export default function ProductsPage() {
                                         <th className="text-left px-6 py-4">
                                             Stock
                                         </th>
+
+                                        <th className="text-left px-6 py-4">
+                                            Actions
+                                        </th>
                                     </tr>
                                 </thead>
 
@@ -501,6 +511,17 @@ export default function ProductsPage() {
 
                                             <td className="px-6 py-4">
                                                 {product.stock}
+                                            </td>
+
+                                            <td className="px-6 py-4">
+                                                <button
+                                                    onClick={() =>
+                                                        router.push(`/products/${product.id}/edit`)
+                                                    }
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    Edit
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
