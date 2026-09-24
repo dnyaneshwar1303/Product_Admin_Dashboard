@@ -477,7 +477,14 @@ export default function ProductsPage() {
                                             </td>
 
                                             <td className="px-6 py-4 font-medium">
-                                                {product.title}
+                                                <button
+                                                    onClick={() =>
+                                                        router.push(`/products/${product.id}`)
+                                                    }
+                                                    className="text-blue-600 hover:underline text-left"
+                                                >
+                                                    {product.title}
+                                                </button>
                                             </td>
 
                                             <td className="px-6 py-4">
