@@ -1,16 +1,40 @@
-"use client"
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "@/components/Navbar";
+import Navbar from "../../components/Navbar";
 import { getProducts } from "../../../services/productApi";
 
 export default function ProductsPage() {
     const router = useRouter();
 
     const [products, setProducts] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+
+    const [total, setTotal] = useState(0);
+
+    const fetchProducts = async () => {
+        try {
+            setLoading(true);
+            setError("");
+
+            const skip = (page - 1) * pageSize;
+
+            const data = await getProducts(pageSize, skip);
+
+            setProducts(data.products);
+            setTotal(data.total);
+        } catch (error) {
+            setError("Failed to load products.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -21,21 +45,71 @@ export default function ProductsPage() {
         }
 
         fetchProducts();
+    }, [page, pageSize]);
 
-    }, [router]);
+    const totalPages = Math.ceil(total / pageSize);
 
-    const fetchProducts = async () => {
-        try {
-            setLoading(true);
-            setError("");
+    const startItem = total === 0
+        ? 0
+        : (page - 1) * pageSize + 1;
 
-            const data = await getProducts();
-            setProducts(data.products);
-        } catch (err) {
-            setError("failed to load products...");
-        } finally {
-            setLoading(false);
+    const endItem = Math.min(
+        page * pageSize,
+        total
+    );
+
+    const handlePageSizeChange = (e) => {
+        setPageSize(Number(e.target.value));
+        setPage(1);
+    };
+
+    const handlePrevious = () => {
+        if (page > 1) {
+            setPage(page - 1);
         }
+    };
+
+    const handleNext = () => {
+        if (page < totalPages) {
+            setPage(page + 1);
+        }
+    };
+
+    const handlePageChange = (pageNumber) => {
+        setPage(pageNumber);
+    };
+
+    const getPageNumbers = () => {
+        const pages = [];
+
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+
+            return pages;
+        }
+
+        pages.push(1);
+
+        if (page > 4) {
+            pages.push("...");
+        }
+
+        const startPage = Math.max(2, page - 1);
+        const endPage = Math.min(totalPages - 1, page + 1);
+
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+
+        if (page < totalPages - 3) {
+            pages.push("...");
+        }
+
+        pages.push(totalPages);
+
+        return pages;
     };
 
     return (
@@ -53,6 +127,22 @@ export default function ProductsPage() {
                         <p className="text-gray-600 mt-1">
                             Manage your products
                         </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <label className="font-medium">
+                            Page Size:
+                        </label>
+
+                        <select
+                            value={pageSize}
+                            onChange={handlePageSizeChange}
+                            className="border rounded-lg px-3 py-2 bg-white"
+                        >
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                        </select>
                     </div>
                 </div>
 
@@ -74,7 +164,6 @@ export default function ProductsPage() {
                         >
                             Retry
                         </button>
-
                     </div>
                 )}
 
@@ -85,73 +174,124 @@ export default function ProductsPage() {
                 )}
 
                 {!loading && !error && products.length > 0 && (
-                    <div className="bg-white rounded-lg shadow overflow-x-auto">
+                    <>
+                        <div className="bg-white rounded-lg shadow overflow-x-auto">
 
-                        <table className="w-full">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                        <th className="text-left px-6 py-4">
+                                            Image
+                                        </th>
 
-                            <thead className="bg-gray-50 border-b">
-                                <tr>
-                                    <th className="text-left px-6 py-4">
-                                        Image
-                                    </th>
+                                        <th className="text-left px-6 py-4">
+                                            Title
+                                        </th>
 
-                                    <th className="text-left px-6 py-4">
-                                        Title
-                                    </th>
+                                        <th className="text-left px-6 py-4">
+                                            Category
+                                        </th>
 
-                                    <th className="text-left px-6 py-4">
-                                        Category
-                                    </th>
+                                        <th className="text-left px-6 py-4">
+                                            Price
+                                        </th>
 
-                                    <th className="text-left px-6 py-4">
-                                        Price
-                                    </th>
+                                        <th className="text-left px-6 py-4">
+                                            Rating
+                                        </th>
 
-                                    <th className="text-left px-6 py-4">
-                                        Rating
-                                    </th>
-
-                                    <th className="text-left px-6 py-4">
-                                        Stock
-                                    </th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                { products.map((product)=>(
-                                    <tr key={product.id} className="border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4">
-                                            <img
-                                               src={product.thumbnail}
-                                               alt={product.title}
-                                               className="w-16 h-16 object-cover rounded-lg"
-                                            />
-                                        </td>
-
-                                        <td className="px-6 py-4 font-medium">
-                                            {product.title}
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            {product.category}
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            ${product.price}
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            {product.stock}
-                                        </td>
+                                        <th className="text-left px-6 py-4">
+                                            Stock
+                                        </th>
                                     </tr>
+                                </thead>
+
+                                <tbody>
+                                    {products.map((product) => (
+                                        <tr
+                                            key={product.id}
+                                            className="border-b hover:bg-gray-50"
+                                        >
+                                            <td className="px-6 py-4">
+                                                <img
+                                                    src={product.thumbnail}
+                                                    alt={product.title}
+                                                    className="w-16 h-16 object-cover rounded-lg"
+                                                />
+                                            </td>
+
+                                            <td className="px-6 py-4 font-medium">
+                                                {product.title}
+                                            </td>
+
+                                            <td className="px-6 py-4">
+                                                {product.category}
+                                            </td>
+
+                                            <td className="px-6 py-4">
+                                                ${product.price}
+                                            </td>
+
+                                            <td className="px-6 py-4">
+                                                ⭐ {product.rating}
+                                            </td>
+
+                                            <td className="px-6 py-4">
+                                                {product.stock}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                        </div>
+
+                        {/* Pagination */}
+
+                        <div className="mt-6 bg-white rounded-lg shadow p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+
+                            <p className="text-gray-600">
+                                Showing {startItem}–{endItem} of {total}
+                            </p>
+
+                            <div className="flex items-center gap-2">
+
+                                <button
+                                    onClick={handlePrevious}
+                                    disabled={page === 1}
+                                    className="px-4 py-2 border rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100"
+                                >
+                                    Previous
+                                </button>
+
+                                {getPageNumbers().map((pageNumber) => (
+                                    <button
+                                        key={pageNumber}
+                                        onClick={() => handlePageChange(pageNumber)}
+                                        className={`px-4 py-2 rounded-lg border ${page === pageNumber
+                                                ? "bg-blue-600 text-white"
+                                                : "bg-white hover:bg-gray-100"
+                                            }`}
+                                    >
+                                        {pageNumber}
+                                    </button>
                                 ))}
-                            </tbody>
-                        </table>
-                        
-                    </div>
+
+                                <button
+                                    onClick={handleNext}
+                                    disabled={page === totalPages}
+                                    className="px-4 py-2 border rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100"
+                                >
+                                    Next
+                                </button>
+
+                            </div>
+
+                        </div>
+                    </>
                 )}
 
             </main>
         </div>
-    )
+    );
 }
