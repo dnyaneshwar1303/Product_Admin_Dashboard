@@ -272,14 +272,14 @@ export default function ProductsPage() {
 
             <main className="max-w-7xl mx-auto p-6">
 
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                     <div>
                         <h1 className="text-3xl font-bold">
                             Products
                         </h1>
                         <button
                             onClick={() => router.push("/products/add")}
-                            className="bg-blue-600 text-white px-5 py-3 rounded-lg"
+                            className="w-full sm:w-auto bg-blue-600 text-white px-5 py-3 rounded-lg"
                         >
                             + Add Product
                         </button>
@@ -328,7 +328,7 @@ export default function ProductsPage() {
                                         newCategory: value,
                                     })
                                 }}
-                                className="border rounded-lg px-4 py-2 bg-white"
+                                className="w-full md:w-auto border rounded-lg px-4 py-2 bg-white"
                             >
                                 <option value="">
                                     All Categories
@@ -363,7 +363,7 @@ export default function ProductsPage() {
                                         newSortBy: value,
                                     })
                                 }}
-                                className="border rounded-lg px-4 py-2 bg-white"
+                                className="w-full md:w-auto border rounded-lg px-4 py-2 bg-white"
                             >
                                 <option value="">
                                     Default
@@ -400,7 +400,7 @@ export default function ProductsPage() {
                                         newOrder: value,
                                     })
                                 }}
-                                className="border rounded-lg px-4 py-2 bg-white"
+                                className="w-full md:w-auto border rounded-lg px-4 py-2 bg-white"
                             >
                                 <option value="asc">
                                     Ascending
@@ -422,7 +422,7 @@ export default function ProductsPage() {
                         <select
                             value={pageSize}
                             onChange={handlePageSizeChange}
-                            className="border rounded-lg px-3 py-2 bg-white"
+                            className="w-full md:w-auto border rounded-lg px-3 py-2 bg-white"
                         >
                             <option value={10}>10</option>
                             <option value={20}>20</option>
@@ -549,7 +549,7 @@ export default function ProductsPage() {
                                 Showing {startItem}–{endItem} of {total}
                             </p>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap justify-center">
 
                                 <button
                                     onClick={handlePrevious}
