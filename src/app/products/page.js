@@ -1,30 +1,81 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import { getCategories, getProducts } from "../../../services/productApi";
 
 export default function ProductsPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const [products, setProducts] = useState([]);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const pageFromURL = Number(searchParams.get("page"));
+
+    const validPage =
+        Number.isInteger(pageFromURL) && pageFromURL >= 1
+            ? pageFromURL
+            : 1;
+
+    const [page, setPage] = useState(validPage);
+
+    const pageSizeFromURL = Number(
+        searchParams.get("pageSize")
+    );
+
+    const validPageSize = [10, 20, 50].includes(
+        pageSizeFromURL
+    )
+        ? pageSizeFromURL
+        : 10;
+
+    const [pageSize, setPageSize] = useState(validPageSize);
 
     const [total, setTotal] = useState(0);
 
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(searchParams.get("search") || "");
 
-    const [category, setCategory] = useState("");
+    const [category, setCategory] = useState(searchParams.get("category") || "");
     const [categories, setCategories] = useState([]);
 
-    const [sortBy, setSortBy] = useState("");
-    const [order, setOrder] = useState("asc");
+    const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "");
+    const [order, setOrder] = useState(searchParams.get("order") || "asc");
+
+    const updateURL = ({
+        newPage = page,
+        newPageSize = pageSize,
+        newSearch = search,
+        newCategory = category,
+        newSortBy = sortBy,
+        newOrder = order,
+    }) => {
+        const params = new URLSearchParams();
+
+        params.set("page", newPage);
+        params.set("pageSize", newPageSize);
+
+        if (newSearch) {
+            params.set("search", newSearch);
+        }
+
+        if (newCategory) {
+            params.set("category", newCategory);
+        }
+
+        if (newSortBy) {
+            params.set("sortBy", newSortBy);
+        }
+
+        if (newOrder) {
+            params.set("order", newOrder);
+        }
+
+        router.replace(`/products?${params.toString()}`);
+    };
 
     const fetchProducts = async (signal) => {
         try {
@@ -42,6 +93,20 @@ export default function ProductsPage() {
                 order,
                 signal,
             });
+
+            const calculatedTotalPages = Math.ceil(
+                data.total / pageSize
+            );
+
+            if (page > calculatedTotalPages && calculatedTotalPages > 0) {
+                setPage(calculatedTotalPages);
+
+                updateURL({
+                    newPage: calculatedTotalPages,
+                });
+
+                return;
+            }
 
             setProducts(data.products);
             setTotal(data.total);
@@ -91,24 +156,44 @@ export default function ProductsPage() {
     );
 
     const handlePageSizeChange = (e) => {
-        setPageSize(Number(e.target.value));
+        const newPageSize = Number(e.target.value);
+        setPageSize(newPageSize);
         setPage(1);
+
+        updateURL({
+            newPage: 1,
+            newPageSize,
+        })
     };
 
     const handlePrevious = () => {
         if (page > 1) {
-            setPage(page - 1);
+            const newPage = page - 1;
+            setPage(newPage);
+
+            updateURL({
+                newPage,
+            });
         }
     };
 
     const handleNext = () => {
         if (page < totalPages) {
-            setPage(page + 1);
+            const newPage = page + 1;
+            setPage(newPage);
         }
+
+        updateURL({
+            newPage,
+        })
     };
 
     const handlePageChange = (pageNumber) => {
         setPage(pageNumber);
+
+        updateURL({
+            newPage: pageNumber,
+        })
     };
 
     const getPageNumbers = () => {
@@ -180,8 +265,13 @@ export default function ProductsPage() {
                             type="text"
                             value={search}
                             onChange={(e) => {
-                                setSearch(e.target.value);
+                                const value = e.target.value;
+                                setSearch(value);
                                 setPage(1);
+                                updateURL({
+                                    newPage1,
+                                    newSearch: value,
+                                })
                             }}
                             placeholder="Search products..."
                             className="w-full md:w-96 border rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
@@ -198,9 +288,16 @@ export default function ProductsPage() {
                             <select
                                 value={category}
                                 onChange={(e) => {
-                                    setCategory(e.target.value);
+                                    const value = e.target.value;
+                                    setCategory(value);
                                     setSearch("");
                                     setPage(1);
+
+                                    updateURL({
+                                        newPage1,
+                                        newSearch: "",
+                                        newCategory: value,
+                                    })
                                 }}
                                 className="border rounded-lg px-4 py-2 bg-white"
                             >
@@ -227,8 +324,15 @@ export default function ProductsPage() {
                             <select
                                 value={sortBy}
                                 onChange={(e) => {
-                                    setSortBy(e.target.value);
+                                    const value = e.target.value;
+
+                                    setSortBy(value);
                                     setPage(1);
+
+                                    updateURL({
+                                        newPage: 1,
+                                        newSortBy: value,
+                                    })
                                 }}
                                 className="border rounded-lg px-4 py-2 bg-white"
                             >
@@ -258,8 +362,14 @@ export default function ProductsPage() {
                             <select
                                 value={order}
                                 onChange={(e) => {
-                                    setOrder(e.target.value);
+                                    const value = e.target.value;
+                                    setOrder(value);
                                     setPage(1);
+
+                                    updateURL({
+                                        newPage: 1,
+                                        newOrder: value,
+                                    })
                                 }}
                                 className="border rounded-lg px-4 py-2 bg-white"
                             >
