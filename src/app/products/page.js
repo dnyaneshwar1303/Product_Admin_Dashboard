@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../../components/Navbar";
-import { getProducts } from "../../../services/productApi";
+import { getCategories, getProducts } from "../../../services/productApi";
 
 export default function ProductsPage() {
     const router = useRouter();
@@ -18,7 +18,13 @@ export default function ProductsPage() {
 
     const [total, setTotal] = useState(0);
 
-    const [search, setSearch]=useState("");
+    const [search, setSearch] = useState("");
+
+    const [category, setCategory] = useState("");
+    const [categories, setCategories] = useState([]);
+
+    const [sortBy, setSortBy] = useState("");
+    const [order, setOrder] = useState("asc");
 
     const fetchProducts = async (signal) => {
         try {
@@ -29,24 +35,24 @@ export default function ProductsPage() {
 
             const data = await getProducts({
                 limit: pageSize,
-                skip:skip,
-                search: search,
-                signal:signal,
+                skip,
+                search,
+                category,
+                sortBy,
+                order,
+                signal,
             });
 
             setProducts(data.products);
             setTotal(data.total);
         } catch (error) {
-            if(error.name==="CanceledError"){
+            if (error.name === "CanceledError" || error.code === "ERR_CANCELED") {
                 return;
             }
-            
-            if(error.code==="ERR_CANCELED"){
-                return;
-            }
+
             setError("Failed to load products.");
         } finally {
-            if(!signal?.aborted){
+            if (!signal?.aborted) {
                 setLoading(false);
             }
         }
@@ -60,18 +66,18 @@ export default function ProductsPage() {
             return;
         }
 
-        const controller=new AbortController();
+        const controller = new AbortController();
 
-        const timer=setTimeout(()=>{
+        const timer = setTimeout(() => {
             fetchProducts(controller.signal);
-        },500);
+        }, search ? 500 : 0);
 
-        return ()=>{
+        return () => {
             clearTimeout(timer);
             controller.abort();
-        }
+        };
 
-    }, [page, pageSize, search]);
+    }, [page, pageSize, search, category, sortBy, order]);
 
     const totalPages = Math.ceil(total / pageSize);
 
@@ -138,6 +144,20 @@ export default function ProductsPage() {
         return pages;
     };
 
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                const data = await getCategories();
+
+                setCategories(data);
+            } catch (error) {
+                alert("Failed to load categories", error);
+            }
+        };
+
+        loadCategories();
+    }, [])
+
     return (
         <div className="min-h-screen bg-gray-100">
             <Navbar />
@@ -156,7 +176,103 @@ export default function ProductsPage() {
                     </div>
 
                     <div className="mb-6">
-                        <input type="text" value={search} onChange={(e)=>{setSearch(e.target.value); setPage(1);}} placeholder="Search products..." className="w-full md:w-96 border rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"></input>
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => {
+                                setSearch(e.target.value);
+                                setPage(1);
+                            }}
+                            placeholder="Search products..."
+                            className="w-full md:w-96 border rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+
+                    <div className="mb-6 flex flex-col md:flex-row gap-4">
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Category
+                            </label>
+
+                            <select
+                                value={category}
+                                onChange={(e) => {
+                                    setCategory(e.target.value);
+                                    setSearch("");
+                                    setPage(1);
+                                }}
+                                className="border rounded-lg px-4 py-2 bg-white"
+                            >
+                                <option value="">
+                                    All Categories
+                                </option>
+
+                                {categories.map((item) => (
+                                    <option
+                                        key={item.slug}
+                                        value={item.slug}
+                                    >
+                                        {item.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Sort By
+                            </label>
+
+                            <select
+                                value={sortBy}
+                                onChange={(e) => {
+                                    setSortBy(e.target.value);
+                                    setPage(1);
+                                }}
+                                className="border rounded-lg px-4 py-2 bg-white"
+                            >
+                                <option value="">
+                                    Default
+                                </option>
+
+                                <option value="title">
+                                    Title
+                                </option>
+
+                                <option value="price">
+                                    Price
+                                </option>
+
+                                <option value="rating">
+                                    Rating
+                                </option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Order
+                            </label>
+
+                            <select
+                                value={order}
+                                onChange={(e) => {
+                                    setOrder(e.target.value);
+                                    setPage(1);
+                                }}
+                                className="border rounded-lg px-4 py-2 bg-white"
+                            >
+                                <option value="asc">
+                                    Ascending
+                                </option>
+
+                                <option value="desc">
+                                    Descending
+                                </option>
+                            </select>
+                        </div>
+
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -299,8 +415,8 @@ export default function ProductsPage() {
                                         key={pageNumber}
                                         onClick={() => handlePageChange(pageNumber)}
                                         className={`px-4 py-2 rounded-lg border ${page === pageNumber
-                                                ? "bg-blue-600 text-white"
-                                                : "bg-white hover:bg-gray-100"
+                                            ? "bg-blue-600 text-white"
+                                            : "bg-white hover:bg-gray-100"
                                             }`}
                                     >
                                         {pageNumber}
