@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
-import { getCategories, getProducts } from "../../../services/productApi";
+import { getCategories, getProducts, deleteProduct } from "../../../services/productApi";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
+import ErrorState from "@/components/ErrorState";
+import EmptyState from "@/components/EmptyState";
 
 export default function ProductsPage() {
     const router = useRouter();
@@ -229,6 +232,26 @@ export default function ProductsPage() {
         return pages;
     };
 
+    const handleDelete = async (id) => {
+        const confirmed = window.confirm(
+            "Are you sure you want to delete this product?"
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            await deleteProduct(id);
+
+            alert("Product deleted successfully.");
+
+            fetchProducts();
+        } catch (error) {
+            alert("Failed to delete product.");
+        }
+    };
+
     useEffect(() => {
         const loadCategories = async () => {
             try {
@@ -408,31 +431,12 @@ export default function ProductsPage() {
                     </div>
                 </div>
 
-                {loading && (
-                    <div className="bg-white rounded-lg p-8 text-center">
-                        Loading products...
-                    </div>
-                )}
+                {loading && <LoadingSkeleton/>}
 
-                {error && (
-                    <div className="bg-white rounded-lg p-8 text-center">
-                        <p className="text-red-600 mb-4">
-                            {error}
-                        </p>
+                {!loading && error && <ErrorState message={error} onRetry={fetchProducts}/>}
 
-                        <button
-                            onClick={fetchProducts}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-                        >
-                            Retry
-                        </button>
-                    </div>
-                )}
-
-                {!loading && !error && products.length === 0 && (
-                    <div className="bg-white rounded-lg p-8 text-center">
-                        No products found.
-                    </div>
+                {!loading && !error && products.length === 0 &&(
+                    <EmptyState/>
                 )}
 
                 {!loading && !error && products.length > 0 && (
@@ -521,6 +525,13 @@ export default function ProductsPage() {
                                                     className="text-blue-600 hover:underline"
                                                 >
                                                     Edit
+                                                </button>
+
+                                                <button
+                                                    onClick={() => handleDelete(product.id)}
+                                                    className="text-red-600 hover:underline ml-4"
+                                                >
+                                                    Delete
                                                 </button>
                                             </td>
                                         </tr>
